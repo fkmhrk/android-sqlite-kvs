@@ -6,6 +6,9 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jp.fkmsoft.libs.sqlitekvs.KVS;
 import jp.fkmsoft.libs.sqlitekvs.KVSException;
 
@@ -82,6 +85,25 @@ public abstract class KVSImpl<T> implements KVS<T> {
         c.close();
 
         return createFromBlob(blob);
+    }
+
+    @Override
+    public List<T> getAll() {
+        Cursor c = mDB.query(DBHelper.TABLE_NAME, null, null, null, null, null, null);
+        if (c == null) { return new ArrayList<T>(); }
+        if (!c.moveToFirst()) {
+            c.close();
+            return new ArrayList<T>();
+        }
+        List<T> list = new ArrayList<T>(c.getCount());
+        int valueIndex = c.getColumnIndex(DBHelper.Columns.VALUE);
+        do {
+            byte[] blob = c.getBlob(valueIndex);
+            list.add(createFromBlob(blob));
+        } while (c.moveToNext());
+        c.close();
+
+        return list;
     }
 
     @Override
