@@ -4,7 +4,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
-import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 
 import jp.fkmsoft.libs.sqlitekvs.KVS;
@@ -18,48 +17,61 @@ public abstract class KVSImpl<T> implements KVS<T> {
     private DBHelper mHelper;
     private SQLiteDatabase mDB;
 
+    private static final String CLAUSE_ID_EQ = DBHelper.Columns.ID + "=?";
+
     protected KVSImpl(Context context, String dbName) {
         this.mHelper = new DBHelper(context, dbName);
+        mDB = mHelper.getWritableDatabase();
+        if (mDB == null) {
+            throw new KVSException("failed to get writable database");
+        }
+        mDB.beginTransaction();
     }
 
     @Override
     public void put(String key, T value) {
-        if (mDB == null) {
-            mDB = mHelper.getWritableDatabase();
-            mDB.beginTransaction();
+        if (key == null) {
+            throw new KVSException("key must not be null");
+        }
+        if (value == null) {
+            delete(key);
+            return;
         }
         // insert
         ContentValues values = new ContentValues();
         values.put(DBHelper.Columns.ID, key);
         values.put(DBHelper.Columns.VALUE, toBytes(value));
         try {
-            mDB.insert(DBHelper.TABLE_NAME, null, values);
-            return;
-        } catch (SQLiteConstraintException e1) {
-            // nop
+            long rowId = mDB.insert(DBHelper.TABLE_NAME, null, values);
+            if (rowId != -1) {
+                return;
+            }
         } catch (SQLException e) {
             throw new KVSException(e);
         }
 
         // update
         try {
-            String where = DBHelper.Columns.ID + "=?";
             String[] args = { key };
-            mDB.update(DBHelper.TABLE_NAME, values, where, args);
+            mDB.update(DBHelper.TABLE_NAME, values, CLAUSE_ID_EQ, args);
         } catch (SQLException e) {
             throw new KVSException(e);
         }
     }
 
+    private void delete(String key) {
+        String[] args = { key };
+        mDB.delete(DBHelper.TABLE_NAME, CLAUSE_ID_EQ, args);
+    }
+
     @Override
     public T get(String key) {
-        if (mDB == null){
-            mDB = mHelper.getWritableDatabase();
-            mDB.beginTransaction();
+        if (key == null) {
+            throw new KVSException("key must not be null");
         }
-        String selection = DBHelper.Columns.ID + "=?";
+
         String[] args = { key };
-        Cursor c = mDB.query(DBHelper.TABLE_NAME, null, selection, args, null, null, null, "1");
+        Cursor c = mDB.query(DBHelper.TABLE_NAME, null, CLAUSE_ID_EQ, args, null, null, null, "1");
         if (c == null) { return null; }
         if (!c.moveToFirst()) {
             c.close();
@@ -77,16 +89,21 @@ public abstract class KVSImpl<T> implements KVS<T> {
         if (mDB == null) { return true; }
         try {
             mDB.setTransactionSuccessful();
-            mDB.close();
-            mDB = null;
             return true;
         } catch (IllegalStateException e) {
             return false;
+        } finally {
+            mDB.endTransaction();
+            mDB.beginTransaction();
         }
     }
 
     @Override
     public boolean close() {
+        if (mDB != null) {
+            mDB.endTransaction();
+            mDB.close();
+        }
         mHelper.close();
         return true;
     }

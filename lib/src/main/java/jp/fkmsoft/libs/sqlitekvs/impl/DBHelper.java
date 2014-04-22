@@ -30,7 +30,7 @@ class DBHelper extends SQLiteOpenHelper {
             "(" + Columns.ID + ")";
 
     DBHelper(Context context, String name) {
-        super(context, name, null, DB_VERSION);
+        super(context, name + ".db", null, DB_VERSION);
     }
 
     @Override
