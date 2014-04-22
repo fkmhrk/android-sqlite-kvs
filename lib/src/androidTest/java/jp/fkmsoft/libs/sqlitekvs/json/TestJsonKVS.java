@@ -4,6 +4,9 @@ import android.test.AndroidTestCase;
 
 import org.json.JSONObject;
 
+import java.util.List;
+
+import jp.fkmsoft.libs.sqlitekvs.KVS;
 import jp.fkmsoft.libs.sqlitekvs.KVSException;
 import jp.fkmsoft.libs.sqlitekvs.util.DBUtils;
 
@@ -13,7 +16,7 @@ import jp.fkmsoft.libs.sqlitekvs.util.DBUtils;
 public class TestJsonKVS extends AndroidTestCase {
     private static final String TABLE_NAME = "data1";
 
-    private JsonKVS mKvs;
+    private KVS<JSONObject> mKvs;
 
     @Override
     protected void setUp() throws Exception {
@@ -112,5 +115,25 @@ public class TestJsonKVS extends AndroidTestCase {
         } catch (KVSException e) {
             // ok
         }
+    }
+
+    public void test_0100_getAll() throws Exception {
+        for (int i = 0 ; i < 5 ; ++i) {
+            JSONObject json = new JSONObject();
+            json.put("name", "fkm" + i);
+
+            mKvs.put("item" + i, json);
+        }
+        mKvs.commit();
+
+        List<JSONObject> items = mKvs.getAll();
+        assertNotNull(items);
+        assertEquals(5, items.size());
+    }
+
+    public void test_0101_getAll_0() throws Exception {
+        List<JSONObject> items = mKvs.getAll();
+        assertNotNull(items);
+        assertEquals(0, items.size());
     }
 }
