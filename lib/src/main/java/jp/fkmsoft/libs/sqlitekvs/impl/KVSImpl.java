@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.SQLException;
+import android.database.sqlite.SQLiteConstraintException;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.util.ArrayList;
@@ -49,8 +50,10 @@ public abstract class KVSImpl<T> implements KVS<T> {
             if (rowId != -1) {
                 return;
             }
-        } catch (SQLException e) {
-            throw new KVSException(e);
+        } catch (SQLiteConstraintException e1) {
+            // try to update
+        } catch (SQLException e2) {
+            throw new KVSException(e2);
         }
 
         // update
