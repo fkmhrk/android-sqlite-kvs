@@ -1,4 +1,14 @@
 apply plugin: 'android-library'
+apply plugin: 'maven'
+
+uploadArchives {
+    repositories.mavenDeployer {
+        repository url: "file://$System.env.HOME/.m2/repository"
+        pom.version = '1.0.1'
+        pom.groupId = 'jp.fkmsoft.libs'
+        pom.artifactId = 'sqlite-kvs'
+    }
+}
 
 android {
     compileSdkVersion 19
