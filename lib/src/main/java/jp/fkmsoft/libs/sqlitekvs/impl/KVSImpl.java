@@ -46,7 +46,7 @@ public abstract class KVSImpl<T> implements KVS<T> {
         values.put(DBHelper.Columns.ID, key);
         values.put(DBHelper.Columns.VALUE, toBytes(value));
         try {
-            long rowId = mDB.insert(DBHelper.TABLE_NAME, null, values);
+            long rowId = mDB.insertWithOnConflict(DBHelper.TABLE_NAME, null, values, SQLiteDatabase.CONFLICT_NONE);
             if (rowId != -1) {
                 return;
             }
